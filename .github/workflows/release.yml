@@ -1,0 +1,60 @@
+name: Runbook Extension Build & Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Bundle Extension
+        run: npm run bundle
+
+      - name: Package VSIX
+        run: npm run vsce-package
+
+      - name: Upload PR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-runbook-extension
+          path: "*.vsix"
+
+      - name: Create or Update Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Delete existing 'latest' release and tag if they exist
+          gh release delete latest --yes || true
+          git push origin :refs/tags/latest || true
+          
+          # Force create and push the 'latest' tag
+          git tag -f latest
+          git push origin latest -f
+          
+          # Create the release and upload the VSIX file
+          gh release create latest ./*.vsix \
+            --title "Latest Runbook VS Code Extension Build" \
+            --notes "Automated build of the VS Code Extension from commit ${GITHUB_SHA} on main branch." \
+            --prerelease

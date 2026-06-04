@@ -1,0 +1,53 @@
+{
+  "name": "vscode-runbook",
+  "displayName": "Runbook",
+  "description": "Interactive shell notebooks (.shbn) supporting Bash and Sh, based on the runbook TUI application.",
+  "version": "0.1.0",
+  "publisher": "GerhardOfRivia",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GerhardOfRivia/vscode-runbook.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Notebooks",
+    "Programming Languages",
+    "Other"
+  ],
+  "icon": "icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onNotebook:shbn"
+  ],
+  "contributes": {
+    "notebooks": [
+      {
+        "type": "shbn",
+        "displayName": "Runbook the Shell Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.shbn"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run bundle",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "bundle-watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+    "vsce-package": "./node_modules/.bin/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.20.1",
+    "typescript": "^5.3.3"
+  }
+}
