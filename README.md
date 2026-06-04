@@ -11,7 +11,7 @@ code --install-extension vscode-runbook-0.1.0.vsix
 
 Open a .shbn file in VS Code and you should see the Runbook editor.
 
-![Runbook Screenshot](./image.png)
+![demo](./demo.gif)
 
 ## development
 
