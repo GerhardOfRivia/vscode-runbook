@@ -41,13 +41,17 @@
     "watch": "tsc -watch -p ./",
     "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
     "bundle-watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
-    "vsce-package": "./node_modules/.bin/vsce package"
+    "vsce-package": "./node_modules/.bin/vsce package",
+    "test": "mocha -r ts-node/register -r ./test/setup.ts 'test/**/*.test.ts'"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.11.24",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.20.1",
+    "mocha": "^11.7.6",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }

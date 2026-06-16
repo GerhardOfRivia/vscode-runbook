@@ -11,21 +11,36 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-release:
+  build:
     name: Build & Package
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: npm
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Get Extension Version
+        run: |
+          echo "SEMVER=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
 
       - name: Bundle Extension
         run: npm run bundle
@@ -33,27 +48,33 @@ jobs:
       - name: Package VSIX
         run: npm run vsce-package
 
-      - name: Upload PR Artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vscode-runbook-extension
+          name: vscode-runbook-${{ env.SEMVER }}
           path: "*.vsix"
 
-      - name: Create or Update Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Create or Update Latest Release
+        if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Delete existing 'latest' release and tag if they exist
-          gh release delete latest --yes || true
-          git push origin :refs/tags/latest || true
-          
-          # Force create and push the 'latest' tag
-          git tag -f latest
-          git push origin latest -f
-          
-          # Create the release and upload the VSIX file
-          gh release create latest ./*.vsix \
-            --title "Latest Runbook VS Code Extension Build" \
-            --notes "Automated build of the VS Code Extension from commit ${GITHUB_SHA} on main branch." \
-            --prerelease
+          gh release view latest >/dev/null 2>&1 || \
+            gh release create latest \
+              --title "Latest Build" \
+              --notes "Latest automated build"
+
+          gh release upload latest *.vsix --clobber
+
+      - name: Create Versioned Release
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${SEMVER}" >/dev/null 2>&1; then
+            gh release upload "${SEMVER}" *.vsix --clobber
+          else
+            gh release create "${SEMVER}" *.vsix \
+              --title "Runbook ${SEMVER}" \
+              --notes "Automated release for version ${SEMVER}"
+          fi
