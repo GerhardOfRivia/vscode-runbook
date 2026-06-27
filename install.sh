@@ -54,12 +54,12 @@ get_latest_version() {
 install() {
     info "Version: $VERSION"
 
-    DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY_NAME}.vsix"
+    DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY_NAME}-${VERSION}.vsix"
     CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt"
     TEMP_DIR=$(mktemp -d)
-    ARCHIVE="${TEMP_DIR}/${BINARY_NAME}.vsix"
+    ARCHIVE="${TEMP_DIR}/${BINARY_NAME}-${VERSION}.vsix"
     CHECKSUMS="${TEMP_DIR}/checksums.txt"
-    ASSET_NAME="${BINARY_NAME}.vsix"
+    ASSET_NAME="${BINARY_NAME}-${VERSION}.vsix"
 
     info "Downloading from: $DOWNLOAD_URL"
     if ! curl -fsSL "$DOWNLOAD_URL" -o "$ARCHIVE"; then
@@ -75,9 +75,9 @@ install() {
         warn "VSCODE_RUNBOOK_SKIP_CHECKSUM=1 set — SKIPPING checksum verification (NOT RECOMMENDED)"
     else
         info "Verifying SHA-256 checksum..."
-        EXPECTED=$(grep "[[:space:]]${ASSET_NAME}\$" "$CHECKSUMS" | awk '{print $1}')
+        EXPECTED=$(grep "[[:space:]]release/${ASSET_NAME}\$" "$CHECKSUMS" | awk '{print $1}')
         if [ -z "$EXPECTED" ]; then
-            error "checksum for ${ASSET_NAME} not found in checksums.txt — refusing to install"
+            error "checksum for release/${ASSET_NAME} not found in checksums.txt — refusing to install"
         fi
         # sha256sum (Linux GNU) vs shasum -a 256 (macOS) — prefer whichever is available.
         if command -v sha256sum >/dev/null 2>&1; then
@@ -96,7 +96,7 @@ install() {
     # install extension
     if command -v code >/dev/null 2>&1; then
         info "Installing extension..."
-        code --install-extension "${ARCHIVE}"
+        code --install-extension "${ARCHIVE}" >/dev/null 2>&1
     else
         error "code not found — cannot install extension"
     fi
