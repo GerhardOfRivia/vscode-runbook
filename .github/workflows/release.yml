@@ -47,11 +47,17 @@ jobs:
       - name: Package VSIX
         run: npm run vsce-package
 
+      - name: Prepare Release Files
+        run: |
+          mkdir -p release
+          cp *.vsix ./release/
+          sha256sum release/*.vsix > release/checksums.txt
+
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vscode-runbook-${{ env.SEMVER }}
-          path: "*.vsix"
+          path: "release/*"
 
       - name: Create or Update Latest Release
         if: github.event_name == 'push'
@@ -63,7 +69,7 @@ jobs:
               --title "Latest Build" \
               --notes "Latest automated build"
 
-          gh release upload latest *.vsix --clobber
+          gh release upload latest release/* --clobber
 
       - name: Create Versioned Release
         if: github.event_name == 'push'
@@ -71,9 +77,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "${SEMVER}" >/dev/null 2>&1; then
-            gh release upload "${SEMVER}" *.vsix --clobber
+            gh release upload "${SEMVER}" release/* --clobber
           else
-            gh release create "${SEMVER}" *.vsix \
+            gh release create "${SEMVER}" release/* \
               --title "Runbook ${SEMVER}" \
               --notes "Automated release for version ${SEMVER}"
           fi

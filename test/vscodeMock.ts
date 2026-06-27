@@ -136,3 +136,19 @@ export const workspace = {
         return { dispose() {} };
     }
 };
+
+// Window mocking tracking
+export let mockShowInputBox: ((options?: any) => Promise<string | undefined>) | undefined = undefined;
+export function setMockShowInputBox(fn: typeof mockShowInputBox) {
+    mockShowInputBox = fn;
+}
+
+export const window = {
+    showInputBox: async (options?: any) => {
+        if (mockShowInputBox) {
+            return mockShowInputBox(options);
+        }
+        return undefined;
+    }
+};
+

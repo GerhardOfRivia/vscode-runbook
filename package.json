@@ -2,7 +2,7 @@
   "name": "vscode-runbook",
   "displayName": "Runbook",
   "description": "Interactive shell notebooks (.shbn) supporting Bash and Sh, based on the runbook TUI application.",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "publisher": "GerhardOfRivia",
   "license": "MIT",
   "repository": {
@@ -20,16 +20,26 @@
   "icon": "icon.png",
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onNotebook:shbn"
+    "onNotebook:shbn",
+    "onNotebook:psnb"
   ],
   "contributes": {
     "notebooks": [
       {
         "type": "shbn",
-        "displayName": "Runbook the Shell Notebook",
+        "displayName": "Runbook Shell Notebook",
         "selector": [
           {
             "filenamePattern": "*.shbn"
+          }
+        ]
+      },
+      {
+        "type": "psnb",
+        "displayName": "Runbook PowerShell Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.psnb"
           }
         ]
       }

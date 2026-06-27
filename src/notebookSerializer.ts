@@ -16,6 +16,8 @@ interface RawNotebook {
 }
 
 export class ShbnSerializer implements vscode.NotebookSerializer {
+    constructor(private defaultLanguage: string = 'bash') {}
+
     async deserializeNotebook(
         content: Uint8Array,
         _token: vscode.CancellationToken
@@ -46,10 +48,14 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
             const kind = cell.cell_type === 'code' ? vscode.NotebookCellKind.Code : vscode.NotebookCellKind.Markup;
             const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
             
-            // Map cell language: default to 'bash', but allow other shell languages if specified in metadata
-            let languageId = kind === vscode.NotebookCellKind.Code ? 'bash' : 'markdown';
-            if (kind === vscode.NotebookCellKind.Code && cell.metadata?.vscode?.languageId) {
-                languageId = cell.metadata.vscode.languageId;
+            // Map cell language: default to defaultLanguage, but allow other shell languages if specified in metadata
+            let languageId = kind === vscode.NotebookCellKind.Code ? this.defaultLanguage : 'markdown';
+            if (kind === vscode.NotebookCellKind.Code) {
+                if (cell.metadata?.vscode?.languageId) {
+                    languageId = cell.metadata.vscode.languageId;
+                } else if (cell.metadata?.language) {
+                    languageId = cell.metadata.language;
+                }
             }
             
             const cellData = new vscode.NotebookCellData(kind, source, languageId);
@@ -116,6 +122,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
             if (cell.kind === vscode.NotebookCellKind.Code) {
                 metadata.vscode = metadata.vscode || {};
                 metadata.vscode.languageId = cell.languageId;
+                metadata.language = cell.languageId;
             }
             
             const rawCell: RawNotebookCell = {

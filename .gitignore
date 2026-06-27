@@ -66,4 +66,5 @@ package-lock.json
 /lib/
 # build
 dist/
+out/
 *.vsix

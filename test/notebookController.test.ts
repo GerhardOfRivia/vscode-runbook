@@ -25,7 +25,7 @@ describe('ShbnController', () => {
         assert.strictEqual(mockCtrl.id, 'shbn-notebook-controller');
         assert.strictEqual(mockCtrl.viewType, 'shbn');
         assert.strictEqual(mockCtrl.label, 'Runbook Shell Notebook');
-        assert.deepStrictEqual(mockCtrl.supportedLanguages, ['bash', 'zsh', 'fish', 'sh', 'shellscript']);
+        assert.deepStrictEqual(mockCtrl.supportedLanguages, ['bash', 'zsh', 'fish', 'sh', 'shellscript', 'powershell', 'pwsh']);
         assert.strictEqual(mockCtrl.supportsExecutionOrder, true);
         assert.ok(mockCtrl.executeHandler);
     });
@@ -218,5 +218,192 @@ describe('ShbnController', () => {
         const execution = mockCtrl.activeExecutions[0];
         assert.strictEqual(execution.success, false);
         assert.strictEqual(sigintSent, true);
+    });
+
+    it('should run powershell commands with correct flags', async () => {
+        let spawnExe = '';
+        let spawnArgs: string[] = [];
+        
+        child_process.spawn = (exe: string, args: string[]) => {
+            spawnExe = exe;
+            spawnArgs = args;
+            const mockChild = new (require('events').EventEmitter)();
+            mockChild.stdout = new (require('events').EventEmitter)();
+            mockChild.stderr = new (require('events').EventEmitter)();
+            mockChild.kill = () => {};
+            
+            process.nextTick(() => {
+                mockChild.emit('close', 0);
+            });
+            return mockChild;
+        };
+
+        const mockCtrl = createdControllers[0];
+        const cell = {
+            document: {
+                getText: () => 'Get-Process',
+                languageId: 'pwsh',
+                uri: {
+                    fsPath: __filename,
+                    scheme: 'file'
+                }
+            },
+            kind: vscode.NotebookCellKind.Code,
+            outputs: [] as any[],
+            metadata: {}
+        };
+
+        await mockCtrl.executeHandler([cell], {}, mockCtrl);
+        
+        assert.strictEqual(spawnExe, 'pwsh');
+        assert.deepStrictEqual(spawnArgs, ['-NoProfile', '-NonInteractive', '-Command', 'Get-Process']);
+    });
+
+    it('should prompt for sudo password if cell contains sudo', async () => {
+        let showInputBoxCalled = false;
+        const vscodeMock = require('./vscodeMock');
+        vscodeMock.setMockShowInputBox(async (options: any) => {
+            showInputBoxCalled = true;
+            assert.ok(options.password);
+            return 'my-secret-password';
+        });
+
+        let stdinData = '';
+        child_process.spawn = (exe: string, args: string[]) => {
+            const mockChild = new (require('events').EventEmitter)();
+            mockChild.stdout = new (require('events').EventEmitter)();
+            mockChild.stderr = new (require('events').EventEmitter)();
+            
+            const mockStdin = {
+                write: (data: string) => {
+                    stdinData += data;
+                },
+                end: () => {}
+            };
+            (mockChild as any).stdin = mockStdin;
+            mockChild.kill = () => {};
+            
+            process.nextTick(() => {
+                mockChild.emit('close', 0);
+            });
+            return mockChild;
+        };
+
+        const mockCtrl = createdControllers[0];
+        const cell = {
+            document: {
+                getText: () => 'sudo apt-get update',
+                languageId: 'bash',
+                uri: {
+                    fsPath: __filename,
+                    scheme: 'file'
+                }
+            },
+            kind: vscode.NotebookCellKind.Code,
+            outputs: [] as any[],
+            metadata: {}
+        };
+
+        await mockCtrl.executeHandler([cell], {}, mockCtrl);
+
+        assert.strictEqual(showInputBoxCalled, true);
+        assert.strictEqual(stdinData, 'my-secret-password\n');
+        
+        // Verify password is cached and second execution does NOT prompt again
+        showInputBoxCalled = false;
+        await mockCtrl.executeHandler([cell], {}, mockCtrl);
+        assert.strictEqual(showInputBoxCalled, false);
+        assert.strictEqual(stdinData, 'my-secret-password\nmy-secret-password\n');
+        
+        // Cleanup mock
+        vscodeMock.setMockShowInputBox(undefined);
+    });
+
+    it('should abort execution if sudo prompt is cancelled', async () => {
+        const vscodeMock = require('./vscodeMock');
+        vscodeMock.setMockShowInputBox(async () => {
+            return undefined; // Cancelled
+        });
+
+        let spawnCalled = false;
+        child_process.spawn = () => {
+            spawnCalled = true;
+            const mockChild = new (require('events').EventEmitter)();
+            return mockChild;
+        };
+
+        const mockCtrl = createdControllers[0];
+        const cell = {
+            document: {
+                getText: () => 'sudo apt-get update',
+                languageId: 'bash',
+                uri: {
+                    fsPath: __filename,
+                    scheme: 'file'
+                }
+            },
+            kind: vscode.NotebookCellKind.Code,
+            outputs: [] as any[],
+            metadata: {}
+        };
+
+        await mockCtrl.executeHandler([cell], {}, mockCtrl);
+
+        assert.strictEqual(spawnCalled, false);
+        const execution = mockCtrl.activeExecutions[0];
+        assert.strictEqual(execution.success, false);
+        
+        vscodeMock.setMockShowInputBox(undefined);
+    });
+
+    it('should filter [sudo] password message from stderr', async () => {
+        const vscodeMock = require('./vscodeMock');
+        vscodeMock.setMockShowInputBox(async () => {
+            return 'pwd';
+        });
+
+        child_process.spawn = () => {
+            const mockChild = new (require('events').EventEmitter)();
+            mockChild.stdout = new (require('events').EventEmitter)();
+            mockChild.stderr = new (require('events').EventEmitter)();
+            mockChild.stdin = { write: () => {}, end: () => {} };
+            mockChild.kill = () => {};
+            
+            process.nextTick(() => {
+                mockChild.stderr.emit('data', Buffer.from('[sudo] password for user:\nactual error output\n'));
+                process.nextTick(() => {
+                    mockChild.emit('close', 0);
+                });
+            });
+            return mockChild;
+        };
+
+        const mockCtrl = createdControllers[0];
+        const cell = {
+            document: {
+                getText: () => 'sudo command',
+                languageId: 'bash',
+                uri: {
+                    fsPath: __filename,
+                    scheme: 'file'
+                }
+            },
+            kind: vscode.NotebookCellKind.Code,
+            outputs: [] as any[],
+            metadata: {}
+        };
+
+        await mockCtrl.executeHandler([cell], {}, mockCtrl);
+
+        const execution = mockCtrl.activeExecutions[0];
+        assert.strictEqual(execution.success, true);
+        assert.strictEqual(execution.outputs.length, 1);
+        const output = execution.outputs[0];
+        assert.strictEqual(output.items.length, 1);
+        assert.strictEqual(output.items[0].mime, 'application/vnd.code.notebook.stderr');
+        const text = new TextDecoder().decode(output.items[0].data);
+        assert.strictEqual(text, 'actual error output\n');
+
+        vscodeMock.setMockShowInputBox(undefined);
     });
 });

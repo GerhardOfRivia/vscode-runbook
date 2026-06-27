@@ -2,14 +2,19 @@
 
 A Visual Studio Code extension for interactive shell notebooks (.shbn), based on the runbook TUI application.
 
+## quick install
 
-## getting started
-
-```sh
-code --install-extension vscode-runbook-0.1.0.vsix
+```bash
+curl -fsSL https://raw.githubusercontent.com/GerhardOfRivia/vscode-runbook/refs/heads/main/install.sh | sh
 ```
 
-Open a .shbn file in VS Code and you should see the Runbook editor.
+## install
+
+```sh
+code --install-extension vscode-runbook-*.vsix
+```
+
+Open a `.shbn` or `.psbn` file in VS Code and you should see the interactive runbook editor.
 
 ![demo](./demo.gif)
 
@@ -19,9 +24,12 @@ Open a .shbn file in VS Code and you should see the Runbook editor.
 # install dependencies
 npm install
 
+# run tests
+npm test
+
 # build the extension
 npm run vsce-package
 
 # install the extension
-code --install-extension vscode-runbook-0.1.0.vsix
+code --install-extension vscode-runbook-*.vsix
 ```

@@ -3,19 +3,21 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 
 export class ShbnController {
-    readonly controllerId = 'shbn-notebook-controller';
-    readonly notebookType = 'shbn';
-    readonly label = 'Runbook Shell Notebook';
     readonly controller: vscode.NotebookController;
     private _executionOrder = 0;
+    private _sudoPassword?: string;
 
-    constructor() {
+    constructor(
+        readonly controllerId: string = 'shbn-notebook-controller',
+        readonly notebookType: string = 'shbn',
+        readonly label: string = 'Runbook Shell Notebook'
+    ) {
         this.controller = vscode.notebooks.createNotebookController(
             this.controllerId,
             this.notebookType,
             this.label
         );
-        this.controller.supportedLanguages = ['bash', 'zsh', 'fish', 'sh', 'shellscript'];
+        this.controller.supportedLanguages = ['bash', 'zsh', 'fish', 'sh', 'shellscript', 'powershell', 'pwsh'];
         this.controller.supportsExecutionOrder = true;
         this.controller.executeHandler = this._execute.bind(this);
     }
@@ -30,6 +32,27 @@ export class ShbnController {
         }
     }
 
+    private _hasSudo(code: string): boolean {
+        const lines = code.split('\n');
+        const sudoRegex = /\bsudo\b/;
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed === '' || trimmed.startsWith('#')) {
+                continue;
+            }
+            if (sudoRegex.test(trimmed)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private _cleanStderr(stderr: string): string {
+        const lines = stderr.split('\n');
+        const clean = lines.filter(line => !line.includes('[sudo] password for'));
+        return clean.join('\n');
+    }
+
     private async _executeCell(cell: vscode.NotebookCell): Promise<void> {
         const execution = this.controller.createNotebookCellExecution(cell);
         execution.executionOrder = ++this._executionOrder;
@@ -40,6 +63,7 @@ export class ShbnController {
 
         // Determine shell executable based on the cell's languageId
         let shellExe = 'bash';
+        let isPowerShell = false;
         const lang = cell.document.languageId;
         if (lang === 'zsh') {
             shellExe = 'zsh';
@@ -47,6 +71,39 @@ export class ShbnController {
             shellExe = 'fish';
         } else if (lang === 'sh') {
             shellExe = 'sh';
+        } else if (lang === 'powershell') {
+            shellExe = 'powershell';
+            isPowerShell = true;
+        } else if (lang === 'pwsh') {
+            shellExe = 'pwsh';
+            isPowerShell = true;
+        }
+
+        let password = this._sudoPassword;
+        if (this._hasSudo(code) && !isPowerShell) {
+            if (password === undefined) {
+                const input = await vscode.window.showInputBox({
+                    prompt: 'This cell contains sudo commands. Please enter sudo password:',
+                    password: true,
+                    ignoreFocusOut: true
+                });
+                if (input === undefined) {
+                    // User cancelled the prompt, cancel execution
+                    execution.end(false, Date.now());
+                    return;
+                }
+                password = input;
+                this._sudoPassword = password;
+            }
+        }
+
+        let wrappedCode = code;
+        if (password && !isPowerShell) {
+            if (lang === 'fish') {
+                wrappedCode = `function sudo; command sudo -S $argv; end; ${code}`;
+            } else {
+                wrappedCode = `sudo() { command sudo -S "$@"; }; ${code}`;
+            }
         }
 
         let stdoutAccumulator = '';
@@ -69,7 +126,11 @@ export class ShbnController {
         };
 
         try {
-            const child = spawn(shellExe, ['-c', code], {
+            const spawnArgs = isPowerShell
+                ? ['-NoProfile', '-NonInteractive', '-Command', wrappedCode]
+                : ['-c', wrappedCode];
+
+            const child = spawn(shellExe, spawnArgs, {
                 cwd,
                 env: process.env
             });
@@ -79,14 +140,25 @@ export class ShbnController {
                 child.kill('SIGINT');
             });
 
+            if (password && !isPowerShell && child.stdin) {
+                child.stdin.write(password + '\n');
+                child.stdin.end();
+            }
+
             child.stdout.on('data', async (data) => {
                 stdoutAccumulator += data.toString();
                 await updateOutput();
             });
 
             child.stderr.on('data', async (data) => {
-                stderrAccumulator += data.toString();
-                await updateOutput();
+                let errStr = data.toString();
+                if (password && !isPowerShell) {
+                    errStr = this._cleanStderr(errStr);
+                }
+                if (errStr) {
+                    stderrAccumulator += errStr;
+                    await updateOutput();
+                }
             });
 
             const exitResult = await new Promise<number | null | Error>((resolve) => {

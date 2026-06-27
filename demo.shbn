@@ -23,18 +23,8 @@
           "languageId": "bash"
         }
       },
-      "execution_count": 1,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "Running a bash command...\n",
-            "Current user: g\n",
-            "Current directory: /home/g/git/vscode-runbook\n"
-          ]
-        }
-      ]
+      "execution_count": null,
+      "outputs": []
     },
     {
       "cell_type": "markdown",
@@ -57,32 +47,31 @@
           "languageId": "bash"
         }
       },
-      "execution_count": 2,
-      "outputs": [
-        {
-          "output_type": "stream",
-          "name": "stdout",
-          "text": [
-            "total 832\n",
-            "drwxrwxr-x   7 g g   4096 Jun  4 16:49 .\n",
-            "drwxrwxr-x  20 g g   4096 Jun  4 15:55 ..\n",
-            "-rw-r--r--   1 g g   2317 Jun  4 16:49 demo.shbn\n",
-            "drwxr-xr-x   2 g g   4096 Jun  4 14:59 dist\n",
-            "drwxrwxr-x   8 g g   4096 Jun  4 16:07 .git\n",
-            "drwxr-xr-x   3 g g   4096 Jun  4 15:20 .github\n",
-            "-rw-rw-r--   1 g g   1528 Jun  4 15:55 .gitignore\n",
-            "-rw-r--r--   1 g g 640237 Jun  4 15:20 icon.png\n",
-            "-rw-rw-r--   1 g g   1074 Jun  4 14:51 LICENSE\n",
-            "drwxrwxr-x 242 g g  12288 Jun  4 15:05 node_modules\n",
-            "-rw-r--r--   1 g g   1457 Jun  4 15:19 package.json\n",
-            "-rw-rw-r--   1 g g 140420 Jun  4 15:50 package-lock.json\n",
-            "-rw-rw-r--   1 g g     16 Jun  4 14:51 README.md\n",
-            "drwxrwxr-x   2 g g   4096 Jun  4 14:58 src\n",
-            "-rw-r--r--   1 g g    420 Jun  4 14:58 tsconfig.json\n",
-            "-rw-r--r--   1 g g     88 Jun  4 15:21 .vscodeignore\n"
-          ]
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Running a Sudo command"
+      ],
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "sudo uname -a"
+      ],
+      "metadata": {
+        "duration_ms": 43,
+        "end_time": "2026-06-27T09:54:00.069804736-06:00",
+        "start_time": "2026-06-27T09:54:00.026568057-06:00",
+        "vscode": {
+          "languageId": "bash"
         }
-      ]
+      },
+      "execution_count": null,
+      "outputs": []
     }
   ],
   "metadata": {},
