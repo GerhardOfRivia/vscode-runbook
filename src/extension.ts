@@ -1,32 +1,32 @@
 import * as vscode from 'vscode';
-import { ShbnSerializer } from './notebookSerializer';
-import { ShbnController } from './notebookController';
+import { RunbookSerializer } from './notebookSerializer';
+import { RunbookController } from './notebookController';
 
 export function activate(context: vscode.ExtensionContext) {
     // Register the notebook serializers
     context.subscriptions.push(
         vscode.workspace.registerNotebookSerializer(
             'shbn',
-            new ShbnSerializer('bash')
+            new RunbookSerializer('bash')
         )
     );
     context.subscriptions.push(
         vscode.workspace.registerNotebookSerializer(
             'psnb',
-            new ShbnSerializer('pwsh')
+            new RunbookSerializer('pwsh')
         )
     );
 
     // Initialize and register the notebook controllers
-    const shbnController = new ShbnController(
+    const shbnController = new RunbookController(
         'shbn-notebook-controller',
         'shbn',
-        'Runbook Shell Notebook'
+        'Shell Runbook'
     );
-    const psnbController = new ShbnController(
+    const psnbController = new RunbookController(
         'psnb-notebook-controller',
         'psnb',
-        'Runbook PowerShell Notebook'
+        'PowerShell Runbook'
     );
     context.subscriptions.push(shbnController, psnbController);
 }

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import * as path from 'path';
 
-export class ShbnController {
+export class RunbookController {
     readonly controller: vscode.NotebookController;
     private _executionOrder = 0;
     private _sudoPassword?: string;

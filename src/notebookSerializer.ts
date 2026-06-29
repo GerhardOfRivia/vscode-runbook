@@ -15,8 +15,8 @@ interface RawNotebook {
     nbformat_minor: number;
 }
 
-export class ShbnSerializer implements vscode.NotebookSerializer {
-    constructor(private defaultLanguage: string = 'bash') {}
+export class RunbookSerializer implements vscode.NotebookSerializer {
+    constructor(private defaultLanguage: string = 'bash') { }
 
     async deserializeNotebook(
         content: Uint8Array,
@@ -47,7 +47,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
         const cells = (raw.cells || []).map(cell => {
             const kind = cell.cell_type === 'code' ? vscode.NotebookCellKind.Code : vscode.NotebookCellKind.Markup;
             const source = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
-            
+
             // Map cell language: default to defaultLanguage, but allow other shell languages if specified in metadata
             let languageId = kind === vscode.NotebookCellKind.Code ? this.defaultLanguage : 'markdown';
             if (kind === vscode.NotebookCellKind.Code) {
@@ -57,14 +57,14 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
                     languageId = cell.metadata.language;
                 }
             }
-            
+
             const cellData = new vscode.NotebookCellData(kind, source, languageId);
-            
+
             // Map outputs if they exist
             if (kind === vscode.NotebookCellKind.Code && cell.outputs) {
                 cellData.outputs = cell.outputs.map(out => {
                     const items: vscode.NotebookCellOutputItem[] = [];
-                    
+
                     if (out.output_type === 'stream') {
                         const text = Array.isArray(out.text) ? out.text.join('') : (out.text || '');
                         if (out.name === 'stderr') {
@@ -91,7 +91,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
                             items.push(new vscode.NotebookCellOutputItem(bytes, mime));
                         }
                     }
-                    
+
                     return new vscode.NotebookCellOutput(items, out.metadata);
                 });
             }
@@ -116,7 +116,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
         const cells: RawNotebookCell[] = data.cells.map(cell => {
             const cell_type = cell.kind === vscode.NotebookCellKind.Code ? 'code' : 'markdown';
             const source = splitLines(cell.value);
-            
+
             // Preserve/embed languageId inside cell metadata so we don't lose it
             const metadata = { ...(cell.metadata || {}) };
             if (cell.kind === vscode.NotebookCellKind.Code) {
@@ -124,7 +124,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
                 metadata.vscode.languageId = cell.languageId;
                 metadata.language = cell.languageId;
             }
-            
+
             const rawCell: RawNotebookCell = {
                 cell_type,
                 source,
@@ -137,7 +137,7 @@ export class ShbnSerializer implements vscode.NotebookSerializer {
                     // Check if it's a stream
                     const stdoutItem = out.items.find(item => item.mime === 'application/vnd.code.notebook.stdout');
                     const stderrItem = out.items.find(item => item.mime === 'application/vnd.code.notebook.stderr');
-                    
+
                     if (stdoutItem || stderrItem) {
                         const name = stderrItem ? 'stderr' : 'stdout';
                         const activeItem = stderrItem || stdoutItem;

@@ -1,13 +1,13 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ShbnSerializer } from '../src/notebookSerializer';
+import { RunbookSerializer } from '../src/notebookSerializer';
 import { TextEncoder, TextDecoder } from 'util';
 
-describe('ShbnSerializer', () => {
-    let serializer: ShbnSerializer;
+describe('RunbookSerializer', () => {
+    let serializer: RunbookSerializer;
 
     beforeEach(() => {
-        serializer = new ShbnSerializer();
+        serializer = new RunbookSerializer();
     });
 
     describe('deserializeNotebook', () => {
@@ -135,7 +135,7 @@ describe('ShbnSerializer', () => {
             // execute_result (text/plain & image/png)
             const out4 = cell.outputs[3];
             assert.strictEqual(out4.items.length, 2);
-            
+
             const plainItem = out4.items.find(i => i.mime === 'text/plain');
             assert.ok(plainItem);
             assert.strictEqual(new TextDecoder().decode(plainItem.data), 'plain output');

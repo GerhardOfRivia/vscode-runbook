@@ -1,17 +1,17 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { ShbnController } from '../src/notebookController';
+import { RunbookController } from '../src/notebookController';
 import { clearControllers, createdControllers } from './vscodeMock';
 
 const child_process = require('child_process');
 
-describe('ShbnController', () => {
-    let controller: ShbnController;
+describe('RunbookController', () => {
+    let controller: RunbookController;
     const originalSpawn = child_process.spawn;
 
     beforeEach(() => {
         clearControllers();
-        controller = new ShbnController();
+        controller = new RunbookController();
     });
 
     afterEach(() => {
@@ -52,7 +52,7 @@ describe('ShbnController', () => {
         // Verify execution results
         assert.strictEqual(mockCtrl.activeExecutions.length, 1);
         const execution = mockCtrl.activeExecutions[0];
-        
+
         assert.strictEqual(execution.success, true);
         assert.strictEqual(execution.executionOrder, 1);
         assert.ok(execution.startedAt);
@@ -115,9 +115,9 @@ describe('ShbnController', () => {
 
         const execution = mockCtrl.activeExecutions[0];
         assert.strictEqual(execution.success, false);
-        
+
         // Output should include the ExitCodeError
-        const errorOutput = execution.outputs.find((out: any) => 
+        const errorOutput = execution.outputs.find((out: any) =>
             out.items.some((i: any) => i.mime === 'application/vnd.code.notebook.error')
         );
         assert.ok(errorOutput);
@@ -148,8 +148,8 @@ describe('ShbnController', () => {
             const mockChild = new (require('events').EventEmitter)();
             mockChild.stdout = new (require('events').EventEmitter)();
             mockChild.stderr = new (require('events').EventEmitter)();
-            mockChild.kill = () => {};
-            
+            mockChild.kill = () => { };
+
             // Emit error asynchronously
             process.nextTick(() => {
                 const err = new Error('spawn ENOENT');
@@ -207,7 +207,7 @@ describe('ShbnController', () => {
 
         // Start execution, cancel immediately in next tick
         const promise = mockCtrl.executeHandler([cell], {}, mockCtrl);
-        
+
         process.nextTick(() => {
             const execution = mockCtrl.activeExecutions[0];
             execution.token.cancel();
@@ -223,15 +223,15 @@ describe('ShbnController', () => {
     it('should run powershell commands with correct flags', async () => {
         let spawnExe = '';
         let spawnArgs: string[] = [];
-        
+
         child_process.spawn = (exe: string, args: string[]) => {
             spawnExe = exe;
             spawnArgs = args;
             const mockChild = new (require('events').EventEmitter)();
             mockChild.stdout = new (require('events').EventEmitter)();
             mockChild.stderr = new (require('events').EventEmitter)();
-            mockChild.kill = () => {};
-            
+            mockChild.kill = () => { };
+
             process.nextTick(() => {
                 mockChild.emit('close', 0);
             });
@@ -254,7 +254,7 @@ describe('ShbnController', () => {
         };
 
         await mockCtrl.executeHandler([cell], {}, mockCtrl);
-        
+
         assert.strictEqual(spawnExe, 'pwsh');
         assert.deepStrictEqual(spawnArgs, ['-NoProfile', '-NonInteractive', '-Command', 'Get-Process']);
     });
@@ -273,16 +273,16 @@ describe('ShbnController', () => {
             const mockChild = new (require('events').EventEmitter)();
             mockChild.stdout = new (require('events').EventEmitter)();
             mockChild.stderr = new (require('events').EventEmitter)();
-            
+
             const mockStdin = {
                 write: (data: string) => {
                     stdinData += data;
                 },
-                end: () => {}
+                end: () => { }
             };
             (mockChild as any).stdin = mockStdin;
-            mockChild.kill = () => {};
-            
+            mockChild.kill = () => { };
+
             process.nextTick(() => {
                 mockChild.emit('close', 0);
             });
@@ -308,13 +308,13 @@ describe('ShbnController', () => {
 
         assert.strictEqual(showInputBoxCalled, true);
         assert.strictEqual(stdinData, 'my-secret-password\n');
-        
+
         // Verify password is cached and second execution does NOT prompt again
         showInputBoxCalled = false;
         await mockCtrl.executeHandler([cell], {}, mockCtrl);
         assert.strictEqual(showInputBoxCalled, false);
         assert.strictEqual(stdinData, 'my-secret-password\nmy-secret-password\n');
-        
+
         // Cleanup mock
         vscodeMock.setMockShowInputBox(undefined);
     });
@@ -352,7 +352,7 @@ describe('ShbnController', () => {
         assert.strictEqual(spawnCalled, false);
         const execution = mockCtrl.activeExecutions[0];
         assert.strictEqual(execution.success, false);
-        
+
         vscodeMock.setMockShowInputBox(undefined);
     });
 
@@ -366,9 +366,9 @@ describe('ShbnController', () => {
             const mockChild = new (require('events').EventEmitter)();
             mockChild.stdout = new (require('events').EventEmitter)();
             mockChild.stderr = new (require('events').EventEmitter)();
-            mockChild.stdin = { write: () => {}, end: () => {} };
-            mockChild.kill = () => {};
-            
+            mockChild.stdin = { write: () => { }, end: () => { } };
+            mockChild.kill = () => { };
+
             process.nextTick(() => {
                 mockChild.stderr.emit('data', Buffer.from('[sudo] password for user:\nactual error output\n'));
                 process.nextTick(() => {
