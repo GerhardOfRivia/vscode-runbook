@@ -66,8 +66,8 @@ jobs:
         run: |
           gh release view latest >/dev/null 2>&1 || \
             gh release create latest \
-              --title "Latest Build" \
-              --notes "Latest automated build"
+              --title "Latest vscode-runbook build" \
+              --notes "Latest vscode-runbook automated build"
 
           gh release upload latest release/* --clobber
 
@@ -80,6 +80,6 @@ jobs:
             gh release upload "${SEMVER}" release/* --clobber
           else
             gh release create "${SEMVER}" release/* \
-              --title "Runbook ${SEMVER}" \
-              --notes "Automated release for version ${SEMVER}"
+              --title "vscode-runbook ${SEMVER}" \
+              --notes "Automated github release for vscode-runbook version ${SEMVER}"
           fi
